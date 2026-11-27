@@ -4,27 +4,27 @@ window.SZENARIO_DATA = {
     {
       "id": "bestehend",
       "name": "Bestehendes Modell",
-      "beschreibung": ""
+      "beschreibung": "Bei der Landesgeschäftsstelle liegen 100 % Geschäftsführung, 50 % Sachbearbeitung/Referentin und 50 % Digitalisierungsbeauftragte. Die Stellenanteile der Projekte gehören zur KEB RLP."
     },
     {
       "id": "autonomie-kombi",
       "name": "Autonomie-Kombi-Modell",
-      "beschreibung": ""
+      "beschreibung": "Bei der Landesgeschäftsstelle liegen 80 % Geschäftsführung, 50 % Sachbearbeitung/Referentin und 50 % Digitalisierungsbeauftragte. Die autonome Mitgliedsorganisation übernimmt 20 % Geschäftsführung und alle Stellenanteile aus den Projekten."
     },
     {
       "id": "autonomie-gross",
       "name": "Autonomie-Modell (groß)",
-      "beschreibung": ""
+      "beschreibung": "Eine eigenständige Organisation übernimmt die Projekte im bisherigen Umfang und alle bisherigen Mitarbeitenden. Sie wird Mitglied der KEB RLP. Die Geschäftsführung umfasst 100 %."
     },
     {
       "id": "minimal-plus",
       "name": "Minimal-Modell +",
-      "beschreibung": ""
+      "beschreibung": "Geschäftsführung 100 %, Sachbearbeitung/Referentin 80 %, Digitalisierungsbeauftragte 50 %."
     },
     {
       "id": "minimal",
       "name": "Minimal-Modell",
-      "beschreibung": ""
+      "beschreibung": "Geschäftsführung 80 %, Sachbearbeitung/Referentin 50 %, Digitalisierungsbeauftragte 50 %."
     }
   ],
   "kriterien": [
