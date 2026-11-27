@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZukunftsAG Szenariobewertung</title>
+<style>
+  :root {
+    --grau-50: #f4f6f8;
+    --grau-100: #e9edf0;
+    --grau-200: #d5dbe1;
+    --grau-400: #98a3ae;
+    --grau-600: #5b6672;
+    --grau-800: #2b333b;
+    --petrol: #0f5c6e;
+    --petrol-dunkel: #0b4553;
+    --petrol-hell: #e3eff2;
+    --rot: #c8453d;
+    --gelb: #e3b02b;
+    --gruen: #3f9a5b;
+    --spalte: 270px;
+    --kopf: 170px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    font-size: 14px;
+    color: var(--grau-800);
+    background: var(--grau-50);
+  }
+  header.seite {
+    background: var(--grau-800);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+  }
+  header.seite h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: .2px; }
+  .werkzeuge { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+  button.knopf, label.knopf {
+    font: inherit;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--grau-400);
+    background: transparent;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button.knopf:hover, label.knopf:hover { background: rgba(255,255,255,.12); }
+  button.knopf.primaer { background: var(--petrol); border-color: var(--petrol); }
+  button.knopf.primaer:hover { background: var(--petrol-dunkel); }
+  #status { font-size: 12px; color: var(--grau-200); }
+  #hinweis {
+    display: none;
+    margin: 12px 24px 0;
+    padding: 10px 14px;
+    background: #fff6dc;
+    border: 1px solid var(--gelb);
+    border-radius: 4px;
+  }
+  #hinweis button {
+    font: inherit; font-size: 13px; margin-left: 8px; padding: 3px 10px;
+    border: 1px solid var(--grau-600); background: #fff; border-radius: 4px; cursor: pointer;
+  }
+  .legende {
+    margin: 14px 24px 0;
+    display: flex; flex-wrap: wrap; gap: 6px 22px;
+    font-size: 12.5px; color: var(--grau-600);
+  }
+  .legende span { display: inline-flex; align-items: center; gap: 6px; }
+  .punkt { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .punkt.rot { background: var(--rot); } .punkt.gelb { background: var(--gelb); } .punkt.gruen { background: var(--gruen); }
+
+  .tabelle-rahmen { margin: 14px 24px 32px; overflow: auto; max-height: calc(100vh - 150px); border: 1px solid var(--grau-200); border-radius: 6px; background: #fff; }
+  table { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: calc(var(--kopf) + 5 * var(--spalte)); }
+  th, td { border-right: 1px solid var(--grau-200); border-bottom: 1px solid var(--grau-200); vertical-align: top; padding: 0; }
+  thead th {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--petrol); color: #fff;
+    padding: 12px 12px; text-align: left; font-weight: 600; font-size: 14px;
+  }
+  thead th.eck { left: 0; z-index: 4; background: var(--grau-800); }
+  tbody th, tfoot th {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--grau-100); text-align: left; font-weight: 600;
+    padding: 12px; width: var(--kopf); font-size: 13.5px;
+  }
+  tfoot th { background: var(--petrol-hell); color: var(--petrol-dunkel); }
+  tfoot td { background: var(--petrol-hell); border-top: 2px solid var(--petrol); }
+  tfoot td textarea { background: #fff; }
+
+  .zelle { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .ampel { display: flex; gap: 6px; align-items: center; }
+  .ampel button {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid transparent; padding: 0; cursor: pointer;
+    opacity: .32; transition: opacity .12s, transform .12s;
+  }
+  .ampel button:hover { opacity: .7; }
+  .ampel button[aria-pressed="true"] { opacity: 1; border-color: var(--grau-800); transform: scale(1.12); }
+  .ampel button.rot { background: var(--rot); }
+  .ampel button.gelb { background: var(--gelb); }
+  .ampel button.gruen { background: var(--gruen); }
+  .ampel .name { font-size: 11.5px; color: var(--grau-600); margin-left: 4px; min-width: 70px; }
+  textarea {
+    width: 100%; min-height: 96px; resize: vertical;
+    font: inherit; font-size: 13.5px; line-height: 1.4;
+    padding: 7px 8px; color: var(--grau-800);
+    border: 1px solid var(--grau-200); border-radius: 4px; background: var(--grau-50);
+  }
+  textarea:focus { outline: 2px solid var(--petrol); outline-offset: -1px; background: #fff; }
+  .zelle.rot { box-shadow: inset 4px 0 0 var(--rot); }
+  .zelle.gelb { box-shadow: inset 4px 0 0 var(--gelb); }
+  .zelle.gruen { box-shadow: inset 4px 0 0 var(--gruen); }
+
+  @media print {
+    header.seite .werkzeuge, #hinweis { display: none; }
+    .tabelle-rahmen { max-height: none; overflow: visible; border: none; margin: 8px 0; }
+    thead th, tbody th, tfoot th { position: static; }
+    table { width: 100%; }
+    textarea { border: none; background: #fff; resize: none; }
+    .ampel button[aria-pressed="false"] { display: none; }
+    @page { size: A3 landscape; margin: 10mm; }
+  }
+</style>
+</head>
+<body>
+
+<header class="seite">
+  <h1 id="titel">ZukunftsAG Szenariobewertung</h1>
+  <span id="status"></span>
+  <div class="werkzeuge">
+    <button class="knopf primaer" id="exportieren" title="Lädt die aktuelle Fassung als data.js herunter">data.js exportieren</button>
+    <label class="knopf" title="Lädt eine data.js oder eine JSON-Datei in die Ansicht">
+      Datei importieren <input type="file" id="importieren" accept=".js,.json" hidden>
+    </label>
+    <button class="knopf" id="verwerfen" title="Löscht den lokalen Entwurf und lädt data.js neu">Lokalen Entwurf verwerfen</button>
+    <button class="knopf" id="drucken">Drucken</button>
+  </div>
+</header>
+
+<div id="hinweis"></div>
+
+<div class="legende">
+  <span><i class="punkt gruen"></i> Grün, günstig für das Modell (beim Kriterium Risiko, geringes Risiko)</span>
+  <span><i class="punkt gelb"></i> Gelb, gemischt oder noch offen</span>
+  <span><i class="punkt rot"></i> Rot, ungünstig für das Modell (beim Kriterium Risiko, hohes Risiko)</span>
+  <span>Ein zweiter Klick auf die gewählte Farbe entfernt die Bewertung.</span>
+</div>
+
+<div class="tabelle-rahmen"><table id="matrix"></table></div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "zukunftsag-szenariobewertung-entwurf";
+  var AMPELN = [
+    { id: "rot", name: "Rot" },
+    { id: "gelb", name: "Gelb" },
+    { id: "gruen", name: "Grün" }
+  ];
+
+  function kopie(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function hash(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+    return String(h);
+  }
+
+  // Ergänzt fehlende Zellen, damit neue Modelle oder Kriterien in data.js ohne weitere Pflege funktionieren.
+  function normalisieren(d) {
+    d.zellen = d.zellen || {};
+    d.gesamt = d.gesamt || {};
+    d.kriterien.forEach(function (k) {
+      d.zellen[k.id] = d.zellen[k.id] || {};
+      d.modelle.forEach(function (m) {
+        var z = d.zellen[k.id][m.id] || {};
+        d.zellen[k.id][m.id] = { ampel: z.ampel || "", text: z.text || "" };
+      });
+    });
+    d.modelle.forEach(function (m) {
+      var g = d.gesamt[m.id] || {};
+      d.gesamt[m.id] = { ampel: g.ampel || "", text: g.text || "" };
+    });
+    return d;
+  }
+
+  // Feste Schlüsselreihenfolge, damit Git nur echte Änderungen als Unterschied zeigt.
+  function serialisieren(d) {
+    var out = { titel: d.titel, modelle: d.modelle, kriterien: d.kriterien, zellen: {}, gesamt: {} };
+    d.kriterien.forEach(function (k) {
+      out.zellen[k.id] = {};
+      d.modelle.forEach(function (m) {
+        var z = d.zellen[k.id][m.id];
+        out.zellen[k.id][m.id] = { ampel: z.ampel, text: z.text };
+      });
+    });
+    d.modelle.forEach(function (m) {
+      var g = d.gesamt[m.id];
+      out.gesamt[m.id] = { ampel: g.ampel, text: g.text };
+    });
+    return "window.SZENARIO_DATA = " + JSON.stringify(out, null, 2) + ";\n";
+  }
+
+  var basis = normalisieren(kopie(window.SZENARIO_DATA));
+  var basisHash = hash(serialisieren(basis));
+  var daten = kopie(basis);
+
+  var statusEl = document.getElementById("status");
+  var hinweisEl = document.getElementById("hinweis");
+
+  function setStatus(t) { statusEl.textContent = t; }
+
+  function entwurfSpeichern() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ basis: basisHash, daten: daten }));
+      setStatus("Lokaler Entwurf gespeichert, noch nicht exportiert");
+    } catch (e) {
+      setStatus("Entwurf konnte nicht lokal gespeichert werden, bitte exportieren");
+    }
+  }
+
+  function hinweis(text, knoepfe) {
+    hinweisEl.innerHTML = "";
+    hinweisEl.appendChild(document.createTextNode(text));
+    (knoepfe || []).forEach(function (k) {
+      var b = document.createElement("button");
+      b.textContent = k.text;
+      b.addEventListener("click", k.aktion);
+      hinweisEl.appendChild(b);
+    });
+    hinweisEl.style.display = "block";
+  }
+
+  function autoHoehe(ta) {
+    ta.style.height = "auto";
+    ta.style.height = Math.max(96, ta.scrollHeight + 2) + "px";
+  }
+
+  function zelleBauen(objekt, platzhalter, beschriftung) {
+    var wrap = document.createElement("div");
+    wrap.className = "zelle " + objekt.ampel;
+
+    var ampel = document.createElement("div");
+    ampel.className = "ampel";
+    ampel.setAttribute("role", "group");
+    ampel.setAttribute("aria-label", "Ampelbewertung " + beschriftung);
+    var name = document.createElement("span");
+    name.className = "name";
+
+    function ampelAnzeige() {
+      wrap.className = "zelle " + objekt.ampel;
+      var a = AMPELN.filter(function (x) { return x.id === objekt.ampel; })[0];
+      name.textContent = a ? a.name : "nicht bewertet";
+      Array.prototype.forEach.call(ampel.querySelectorAll("button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.ampel === objekt.ampel));
+      });
+    }
+
+    AMPELN.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = a.id;
+      b.dataset.ampel = a.id;
+      b.title = a.name;
+      b.setAttribute("aria-label", a.name + " für " + beschriftung);
+      b.addEventListener("click", function () {
+        objekt.ampel = (objekt.ampel === a.id) ? "" : a.id;
+        ampelAnzeige();
+        entwurfSpeichern();
+      });
+      ampel.appendChild(b);
+    });
+    ampel.appendChild(name);
+
+    var ta = document.createElement("textarea");
+    ta.placeholder = platzhalter;
+    ta.value = objekt.text;
+    ta.setAttribute("aria-label", "Argumente " + beschriftung);
+    ta.addEventListener("input", function () {
+      objekt.text = ta.value;
+      autoHoehe(ta);
+      entwurfSpeichern();
+    });
+
+    wrap.appendChild(ampel);
+    wrap.appendChild(ta);
+    ampelAnzeige();
+    return wrap;
+  }
+
+  function rendern() {
+    document.getElementById("titel").textContent = daten.titel;
+    document.title = daten.titel;
+    var tabelle = document.getElementById("matrix");
+    tabelle.innerHTML = "";
+
+    var thead = tabelle.createTHead();
+    var kopf = thead.insertRow();
+    var eck = document.createElement("th");
+    eck.className = "eck";
+    eck.textContent = "Kriterien";
+    kopf.appendChild(eck);
+    daten.modelle.forEach(function (m) {
+      var th = document.createElement("th");
+      th.textContent = m.name;
+      kopf.appendChild(th);
+    });
+
+    var tbody = tabelle.createTBody();
+    daten.kriterien.forEach(function (k) {
+      var zeile = tbody.insertRow();
+      var th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = k.name;
+      zeile.appendChild(th);
+      daten.modelle.forEach(function (m) {
+        var td = zeile.insertCell();
+        td.appendChild(zelleBauen(daten.zellen[k.id][m.id], "Argumente eintragen", k.name + ", " + m.name));
+      });
+    });
+
+    var tfoot = tabelle.createTFoot();
+    var fuss = tfoot.insertRow();
+    var fth = document.createElement("th");
+    fth.scope = "row";
+    fth.textContent = "Gesamteinschätzung";
+    fuss.appendChild(fth);
+    daten.modelle.forEach(function (m) {
+      var td = fuss.insertCell();
+      td.appendChild(zelleBauen(daten.gesamt[m.id], "Gesamteinschätzung als Kommentar", "Gesamteinschätzung, " + m.name));
+    });
+
+    Array.prototype.forEach.call(tabelle.querySelectorAll("textarea"), autoHoehe);
+  }
+
+  // Beim Start prüfen, ob ein lokaler Entwurf vorliegt.
+  function entwurfPruefen() {
+    var roh = null;
+    try { roh = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+    if (!roh) { setStatus("Stand der Datei data.js"); return; }
+    var entwurf;
+    try { entwurf = JSON.parse(roh); } catch (e) { return; }
+
+    function uebernehmen() {
+      daten = normalisieren(entwurf.daten);
+      rendern();
+      hinweis("Ein lokaler Entwurf aus Deinem Browser ist geladen.", [
+        { text: "Entwurf verwerfen", aktion: verwerfen }
+      ]);
+      setStatus("Lokaler Entwurf, noch nicht exportiert");
+    }
+
+    if (entwurf.basis === basisHash) {
+      uebernehmen();
+    } else {
+      hinweis("Die Datei data.js wurde seit Deinem lokalen Entwurf geändert, zum Beispiel durch einen Pull aus GitHub.", [
+        { text: "Entwurf trotzdem laden", aktion: uebernehmen },
+        { text: "Entwurf verwerfen", aktion: verwerfen }
+      ]);
+      setStatus("Stand der Datei data.js");
+    }
+  }
+
+  function verwerfen() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    daten = kopie(basis);
+    hinweisEl.style.display = "none";
+    rendern();
+    setStatus("Stand der Datei data.js");
+  }
+
+  document.getElementById("verwerfen").addEventListener("click", function () {
+    if (window.confirm("Lokale Änderungen verwerfen und den Stand aus data.js laden?")) { verwerfen(); }
+  });
+
+  document.getElementById("exportieren").addEventListener("click", function () {
+    var blob = new Blob([serialisieren(daten)], { type: "text/javascript;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "data.js";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    setStatus("data.js exportiert, bitte im Repository ersetzen und committen");
+  });
+
+  document.getElementById("importieren").addEventListener("change", function (ev) {
+    var datei = ev.target.files[0];
+    if (!datei) { return; }
+    var leser = new FileReader();
+    leser.onload = function () {
+      try {
+        var t = String(leser.result);
+        var json = t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1);
+        var d = JSON.parse(json);
+        if (!d.modelle || !d.kriterien) { throw new Error("Struktur nicht erkannt"); }
+        daten = normalisieren(d);
+        rendern();
+        entwurfSpeichern();
+        setStatus("Datei importiert, als lokaler Entwurf gespeichert");
+      } catch (e) {
+        window.alert("Die Datei konnte nicht gelesen werden. " + e.message);
+      }
+    };
+    leser.readAsText(datei, "utf-8");
+    ev.target.value = "";
+  });
+
+  document.getElementById("drucken").addEventListener("click", function () { window.print(); });
+
+  rendern();
+  entwurfPruefen();
+})();
+</script>
+</body>
+</html>
