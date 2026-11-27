@@ -122,14 +122,25 @@
   .zelle.gelb { box-shadow: inset 4px 0 0 var(--gelb); }
   .zelle.gruen { box-shadow: inset 4px 0 0 var(--gruen); }
 
+  #druck { display: none; }
+  .version { font-size: 11px; color: var(--grau-400); }
+
   @media print {
-    header.seite .werkzeuge, #hinweis { display: none; }
-    .tabelle-rahmen { max-height: none; overflow: visible; border: none; margin: 8px 0; }
-    thead th, tbody th, tfoot th { position: static; }
-    :root { --s: 1 !important; }
-    table { width: 100%; }
-    textarea { border: none; background: #fff; resize: none; }
-    .ampel button[aria-pressed="false"] { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #fff; font-size: 10pt; }
+    header.seite { background: #fff; color: #000; padding: 0 0 6px; }
+    header.seite .werkzeuge, #status, .version, #hinweis, .legende, .tabelle-rahmen { display: none !important; }
+    #druck { display: block; }
+    #druck table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    #druck th, #druck td { border: 1px solid #98a3ae; padding: 4px 6px; vertical-align: top; font-size: 9pt; text-align: left; }
+    #druck thead th { background: #0f5c6e; color: #fff; }
+    #druck tbody th { background: #e9edf0; width: 12%; }
+    #druck tr.beschr td { background: #f4f6f8; }
+    #druck tr.gesamt th, #druck tr.gesamt td { background: #e3eff2; border-top: 2px solid #0f5c6e; }
+    #druck .p-ampel { font-weight: 600; margin-bottom: 3px; }
+    #druck .punkt { vertical-align: -1px; margin-right: 4px; }
+    #druck .p-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+    #druck tr { break-inside: avoid; }
     @page { size: A3 landscape; margin: 10mm; }
   }
 </style>
@@ -139,6 +150,7 @@
 <header class="seite">
   <h1 id="titel">ZukunftsAG Szenariobewertung</h1>
   <span id="status"></span>
+  <span class="version" id="version"></span>
   <div class="werkzeuge">
     <button class="knopf" id="kleiner" title="Schrift verkleinern" aria-label="Schrift verkleinern">A−</button>
     <button class="knopf" id="groesser" title="Schrift vergrößern" aria-label="Schrift vergrößern">A+</button>
@@ -148,7 +160,8 @@
       Datei importieren <input type="file" id="importieren" accept=".js,.json" hidden>
     </label>
     <button class="knopf" id="verwerfen" title="Löscht den lokalen Entwurf und lädt data.js neu">Lokalen Entwurf verwerfen</button>
-    <button class="knopf" id="drucken">Drucken</button>
+    <button class="knopf" id="csv" title="Sicherung als Tabelle für Excel, getrennt durch Semikolon">Sicherung CSV</button>
+    <button class="knopf" id="pdf" title="Öffnet den Druckdialog, dort 'Als PDF speichern' wählen">Sicherung PDF</button>
   </div>
 </header>
 
@@ -162,6 +175,7 @@
 </div>
 
 <div class="tabelle-rahmen"><table id="matrix"></table></div>
+<div id="druck" aria-hidden="true"></div>
 
 <script src="data.js"></script>
 <script>
@@ -467,13 +481,119 @@
     ev.target.value = "";
   });
 
+
+  // Sicherungen unabhängig von data.js und Git.
+  var VERSION = "Version 27.11.2026, Sicherung CSV und PDF";
+  document.getElementById("version").textContent = VERSION;
+
+  function zweistellig(n) { return (n < 10 ? "0" : "") + n; }
+  function stempel() {
+    var n = new Date();
+    return n.getFullYear() + "-" + zweistellig(n.getMonth() + 1) + "-" + zweistellig(n.getDate()) +
+      "_" + zweistellig(n.getHours()) + zweistellig(n.getMinutes());
+  }
+  function ampelText(a) { return a === "rot" ? "Rot" : a === "gelb" ? "Gelb" : a === "gruen" ? "Grün" : ""; }
+
+  function csvFeld(t) { return '"' + String(t).replace(/"/g, '""') + '"'; }
+  function csvErzeugen() {
+    var zeilen = [["Kriterium", "Modell", "Ampel", "Argumente"]];
+    daten.modelle.forEach(function (m) {
+      zeilen.push(["Kurzbeschreibung", m.name, "", m.beschreibung]);
+    });
+    daten.kriterien.forEach(function (k) {
+      daten.modelle.forEach(function (m) {
+        var z = daten.zellen[k.id][m.id];
+        zeilen.push([k.name, m.name, ampelText(z.ampel), z.text]);
+      });
+    });
+    daten.modelle.forEach(function (m) {
+      var g = daten.gesamt[m.id];
+      zeilen.push(["Gesamteinschätzung", m.name, ampelText(g.ampel), g.text]);
+    });
+    return "﻿" + zeilen.map(function (z) { return z.map(csvFeld).join(";"); }).join("\r\n") + "\r\n";
+  }
+
+  function herunterladen(inhalt, typ, name) {
+    var blob = new Blob([inhalt], { type: typ });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  document.getElementById("csv").addEventListener("click", function () {
+    herunterladen(csvErzeugen(), "text/csv;charset=utf-8", "Szenariobewertung_" + stempel() + ".csv");
+    setStatus("CSV gespeichert, bitte an einem sicheren Ort ablegen");
+  });
+
+  function druckAufbauen() {
+    var el = document.getElementById("druck");
+    el.innerHTML = "";
+    var t = document.createElement("table");
+    function zelle(zeile, obj, typ) {
+      var td = zeile.insertCell();
+      if (typ !== "beschr") {
+        var a = document.createElement("div");
+        a.className = "p-ampel";
+        var p = document.createElement("i");
+        p.className = "punkt " + (obj.ampel || "");
+        if (!obj.ampel) { p.style.border = "1px solid #98a3ae"; }
+        a.appendChild(p);
+        a.appendChild(document.createTextNode(ampelText(obj.ampel) || "nicht bewertet"));
+        td.appendChild(a);
+      }
+      var x = document.createElement("div");
+      x.className = "p-text";
+      x.textContent = typ === "beschr" ? obj.beschreibung : obj.text;
+      td.appendChild(x);
+    }
+    function kopfzelle(zeile, text) {
+      var th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = text;
+      zeile.appendChild(th);
+    }
+    var kopf = t.createTHead().insertRow();
+    var eck = document.createElement("th"); eck.textContent = "Kriterien"; kopf.appendChild(eck);
+    daten.modelle.forEach(function (m) {
+      var th = document.createElement("th"); th.textContent = m.name; kopf.appendChild(th);
+    });
+    var tb = t.createTBody();
+    var bz = tb.insertRow(); bz.className = "beschr";
+    kopfzelle(bz, "Kurzbeschreibung");
+    daten.modelle.forEach(function (m) { zelle(bz, m, "beschr"); });
+    daten.kriterien.forEach(function (k) {
+      var z = tb.insertRow();
+      kopfzelle(z, k.name);
+      daten.modelle.forEach(function (m) { zelle(z, daten.zellen[k.id][m.id], "zelle"); });
+    });
+    var gz = tb.insertRow(); gz.className = "gesamt";
+    kopfzelle(gz, "Gesamteinschätzung");
+    daten.modelle.forEach(function (m) { zelle(gz, daten.gesamt[m.id], "zelle"); });
+    el.appendChild(t);
+  }
+
+  var titelAlt = document.title;
+  window.addEventListener("beforeprint", function () {
+    druckAufbauen();
+    titelAlt = document.title;
+    document.title = "Szenariobewertung_" + stempel();
+  });
+  window.addEventListener("afterprint", function () { document.title = titelAlt; });
+  document.getElementById("pdf").addEventListener("click", function () {
+    window.alert("Im folgenden Druckdialog bei Ziel bzw. Drucker 'Als PDF speichern' wählen. Papierformat A3 quer ist voreingestellt.");
+    window.print();
+  });
+
   document.getElementById("kleiner").addEventListener("click", function () { skalaSetzen(skala - 0.1); });
   document.getElementById("groesser").addEventListener("click", function () { skalaSetzen(skala + 0.1); });
   document.getElementById("beamer").addEventListener("click", function () {
     skalaSetzen(skala >= BEAMER_SKALA ? 1 : BEAMER_SKALA);
   });
 
-  document.getElementById("drucken").addEventListener("click", function () { window.print(); });
 
   rendern();
   skalaSetzen(skala);
